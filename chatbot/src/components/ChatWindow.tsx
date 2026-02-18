@@ -8,6 +8,10 @@ import TransactionTable from "./TransactionTable";
 import PriceChart from "./PriceChart";
 import ChatInput from "./ChatInput";
 
+function generateId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
 const SUGGESTED_QUESTIONS = [
   "What's the average price of a 2-bed apartment in Dubai Marina?",
   "Show me the cheapest villas available in Arabian Ranches",
@@ -34,7 +38,7 @@ export default function ChatWindow() {
 
   const sendMessage = async (content: string) => {
     const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       role: "user",
       content,
     };
@@ -62,7 +66,7 @@ export default function ChatWindow() {
       const data = await res.json();
 
       const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "assistant",
         content: data.content,
       };
@@ -77,7 +81,7 @@ export default function ChatWindow() {
       }
     } catch (err) {
       const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "assistant",
         content: `Sorry, something went wrong: ${err instanceof Error ? err.message : "Unknown error"}. Please try again.`,
       };
