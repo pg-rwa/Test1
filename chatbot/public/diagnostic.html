@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatbot Diagnostic</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+    .pass { color: #0f0; }
+    .fail { color: #f00; }
+    .warn { color: #ff0; }
+    #log { white-space: pre-wrap; line-height: 1.6; }
+    button { margin: 10px 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Chatbot Diagnostic Page</h1>
+  <div id="log"></div>
+  <button onclick="runAllTests()">Run All Tests</button>
+  <button onclick="testChat()">Test Chat API</button>
+  <script>
+    const log = document.getElementById('log');
+    function out(msg, cls) {
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = msg;
+      log.appendChild(line);
+    }
+
+    async function runAllTests() {
+      log.innerHTML = '';
+      out('=== BROWSER DIAGNOSTICS ===\n');
+
+      // Test 1: crypto.randomUUID
+      out('1. crypto.randomUUID:');
+      try {
+        const uuid = crypto.randomUUID();
+        out('   PASS - ' + uuid, 'pass');
+      } catch(e) {
+        out('   FAIL - ' + e.message, 'fail');
+      }
+
+      // Test 2: crypto.getRandomValues
+      out('2. crypto.getRandomValues:');
+      try {
+        const arr = new Uint8Array(16);
+        crypto.getRandomValues(arr);
+        out('   PASS - ' + Array.from(arr).map(x => x.toString(16).padStart(2,'0')).join(''), 'pass');
+      } catch(e) {
+        out('   FAIL - ' + e.message, 'fail');
+      }
+
+      // Test 3: Secure context
+      out('3. isSecureContext: ' + window.isSecureContext, window.isSecureContext ? 'pass' : 'warn');
+
+      // Test 4: Fetch API
+      out('4. Fetch API availability:');
+      out('   ' + (typeof fetch === 'function' ? 'PASS' : 'FAIL'), typeof fetch === 'function' ? 'pass' : 'fail');
+
+      // Test 5: Can reach the API
+      out('5. API health check:');
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({messages: [{role: 'user', content: 'hi'}]})
+        });
+        const data = await res.json();
+        if (res.ok && data.content) {
+          out('   PASS - Got response: ' + data.content.substring(0, 100) + '...', 'pass');
+        } else {
+          out('   FAIL - Status ' + res.status + ': ' + JSON.stringify(data), 'fail');
+        }
+      } catch(e) {
+        out('   FAIL - ' + e.message, 'fail');
+      }
+
+      // Test 6: Check if Next.js hydrated
+      out('6. Page hydration check:');
+      const textarea = document.querySelector('textarea');
+      const sendBtn = document.querySelector('button');
+      out('   Main page has textarea: ' + (textarea ? 'NO (this is diagnostic page)' : 'NO'), 'warn');
+      out('   Check main page at / for hydration', 'warn');
+
+      // Test 7: Protocol
+      out('7. Protocol: ' + location.protocol);
+      out('   Host: ' + location.host);
+
+      // Test 8: JS modules
+      out('8. ES module support:');
+      try {
+        new Function('import("")');
+        out('   PASS - Dynamic import supported', 'pass');
+      } catch(e) {
+        out('   WARN - ' + e.message, 'warn');
+      }
+
+      // Test 9: React 19 compatibility
+      out('9. React/Next.js features:');
+      out('   Symbol.for: ' + (typeof Symbol.for === 'function' ? 'PASS' : 'FAIL'), typeof Symbol.for === 'function' ? 'pass' : 'fail');
+      out('   Proxy: ' + (typeof Proxy === 'function' ? 'PASS' : 'FAIL'), typeof Proxy === 'function' ? 'pass' : 'fail');
+      out('   async/await: PASS (this script is running)', 'pass');
+
+      out('\n=== DONE ===');
+    }
+
+    async function testChat() {
+      out('\n=== CHAT API TEST ===\n');
+      try {
+        const start = Date.now();
+        out('Sending: "What is the average price in Dubai Marina?"');
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({messages: [{role: 'user', content: 'What is the average price in Dubai Marina?'}]})
+        });
+        const elapsed = Date.now() - start;
+        const data = await res.json();
+        out('Status: ' + res.status + ' (' + elapsed + 'ms)', res.ok ? 'pass' : 'fail');
+        out('Tools used: ' + (data.toolResults ? data.toolResults.length : 0));
+        if (data.toolResults) {
+          data.toolResults.forEach(tr => {
+            const cnt = Array.isArray(tr.result) ? tr.result.length : 'object';
+            out('  ' + tr.tool + ': ' + cnt + ' results');
+          });
+        }
+        out('Response: ' + (data.content || data.error || 'empty').substring(0, 300), data.content ? 'pass' : 'fail');
+      } catch(e) {
+        out('ERROR: ' + e.message, 'fail');
+      }
+    }
+
+    // Auto-run on load
+    runAllTests();
+  </script>
+</body>
+</html>
